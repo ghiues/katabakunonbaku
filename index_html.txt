@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mega Kuis Kata Baku UTBK</title>
+    <style>
+        :root {
+            --primary: #4e54c8;
+            --secondary: #8f94fb;
+            --bg: #f4f7f6;
+            --correct: #28a745;
+            --wrong: #dc3545;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #e0eafc 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .quiz-app {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .setup-screen button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 10px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 80%;
+        }
+
+        .setup-screen button:hover {
+            background: #383ea3;
+            transform: translateY(-2px);
+        }
+
+        #quiz-screen, #result-screen {
+            display: none;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .question {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .btn-option {
+            display: block;
+            width: 100%;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .btn-option:hover:not(:disabled) {
+            background: #e9ecef;
+            border-color: #ccc;
+        }
+
+        .btn-option.correct {
+            background: var(--correct);
+            border-color: var(--correct);
+            color: white;
+        }
+
+        .btn-option.wrong {
+            background: var(--wrong);
+            border-color: var(--wrong);
+            color: white;
+        }
+
+        .feedback {
+            font-size: 18px;
+            font-weight: bold;
+            height: 30px;
+            margin-bottom: 20px;
+        }
+
+        .btn-next {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            margin: 0 auto;
+        }
+
+        .score-display {
+            font-size: 60px;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 20px 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="quiz-app">
+        
+        <div id="setup-screen" class="setup-screen">
+            <div class="header">
+                <h1>Mega Kuis Kata Baku</h1>
+                <p> 350+ Pasang Kata Baku & Tidak Baku</p>
+            </div>
+            <h3>Pilih Mode Kuis:</h3>
+            <button onclick="startQuiz(20)">Pemanasan (20 Soal)</button>
+            <button onclick="startQuiz(50)">Intensif (50 Soal)</button>
+            <button onclick="startQuiz(100)">Maraton (100 Soal)</button>
+            <button style="background: #e83e8c;" onclick="startQuiz(999)">Survival (Mainkan Semua!)</button>
+        </div>
+
+        <div id="quiz-screen">
+            <div class="stats">
+                <span id="q-counter">Soal 1/20</span>
+                <span id="score-counter">Benar: 0</span>
+            </div>
+            <div class="question">Manakah penulisan kata yang baku?</div>
+            
+            <div id="options-area"></div>
+            
+            <div id="feedback" class="feedback"></div>
+            <button id="btn-next" class="btn-next" onclick="nextQuestion()">Lanjut Soal</button>
+        </div>
+
+        <div id="result-screen">
+            <div class="header">
+                <h1>Latihan Selesai!</h1>
+            </div>
+            <p>Skor Akhir Anda:</p>
+            <div id="final-score" class="score-display">0</div>
+            <p id="final-message" style="font-weight: bold; margin-bottom: 30px;"></p>
+            <button class="setup-screen" style="background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-size: 16px;" onclick="location.reload()">Kembali ke Menu Utama</button>
+        </div>
+
+    </div>
+
+    <script>
+        // DATABASE KATA (Baku | Tidak Baku) - Ratusan kata yang sering masuk PPU/PBM SNBT
+        const rawData = [
+            "abjad|abjat","advokat|adpokat","aktif|aktip","aktivitas|aktifitas","amfibi|ampibi",
+            "analisis|analisa","andal|handal","antre|antri","apotek|apotik","asas|azas",
+            "astronaut|astronot","atlet|atlit","atmosfer|atmosfir","autentik|otentik","baterai|batere",
+            "berpikir|berfikir","besok|esok","blanko|blangko","bolpoin|bolpen","brankas|berangkas",
+            "bujet|budget","bus|bis","cabai|cabe","cedera|cidera","cendekiawan|cendikiawan",
+            "cengkerama|cengkrama","cengkih|cengkeh","cokelat|coklat","daftar|daptar","definitif|definitip",
+            "depot|depo","detail|detil","diagnosis|diagnosa","dolar|dollar","efektif|efektip",
+            "ekstrem|ekstrim","elite|elit","esai|essay","familier|familiar","februari|pebruari",
+            "film|filem","filsafat|falsafah","fondasi|pondasi","fotokopi|photocopy","frekuensi|frekwensi",
+            "geladi|gladi","genius|jenius","gizi|giji","gua|goa","gubuk|gubug",
+            "hafal|hapal","hakikat|hakekat","heterogen|hetrogen","hierarki|hirarki","hipotesis|hipotesa",
+            "ideologi|idiologi","ijazah|ijasah","ikhlas|ihlas","iktikad|itikad","imbau|himbau",
+            "indera|indra","insaf|insyaf","inspektur|inspektur","intelijen|intelejen","istri|isteri",
+            "izin|ijin","jadwal|jadual","jenazah|jenasah","jenderal|jendral","justru|justeru",
+            "kaidah|kaedah","kanker|kangker","karier|karir","karisma|kharisma","kategori|katagori",
+            "khatulistiwa|katulistiwa","khawatir|kuatir","komersial|komersil","komoditas|komoditi","kompleks|komplek",
+            "konkret|konkrit","konsekuen|konsekwen","kosakata|kosa kata","kreatif|kreatip","kualitas|kwalitas",
+            "kuantitas|kwantitas","kuitansi|kwitansi","legalisasi|legalisir","lembap|lembab","lubang|lobang",
+            "maaf|maap","makhluk|mahkluk","manajemen|managemen","manajer|manager","mantra|mantera",
+            "masal|massal","masjid|mesjid","massa|masa","memerhatikan|memperhatikan","memesona|mempesona",
+            "mengubah|merubah","menteri|mentri","merek|merk","meski|meskipun","meterai|materai",
+            "metode|metoda","miliar|milyar","misi|missi","misteri|misteri","mitos|mitos",
+            "modern|moderen","mulia|mulya","nakhoda|nahkoda","napas|nafas","narasumber|nara sumber",
+            "nasihat|nasehat","negatif|negatip","negeri|negri","nomor|nomer","november|nopember",
+            "objek|obyek","objektif|obyektif","omzet|omset","orang tua|orangtua","orisinal|orisinil",
+            "paham|faham","pascapanen|pasca panen","paspor|pasport","pedas|pedes","pembaruan|pembaharuan",
+            "penasihat|penasehat","persen|prosen","petai|pete","pikir|fikir","praktik|praktek",
+            "prasyarat|pra syarat","provinsi|propinsi","putra|putera","ramadan|ramadhan","ramai|rame",
+            "rapi|rapih","rasional|rasionil","realisasi|realisir","relatif|relatip","remaja|remaja",
+            "respons|respon","reumatik|rematik","rezim|rejim","risiko|resiko","roboh|rubuh",
+            "roh|ruuh","saksama|seksama","sanksi|sangsi","satai|sate","sastra|sastera",
+            "sekadar|sekedar","sekering|sekring","sekretaris|sekertaris","selebritas|selebriti","senin|senen",
+            "seriawan|sariawan","silakan|silahkan","sindrom|sindrome","sintesis|sintesa","sistem|sistim",
+            "standar|standard","standardisasi|standarisasi","stres|stress","studi|study","subjek|subyek",
+            "surga|sorga","survei|survey","sutera|sutra","takhayul|tahayul","takhta|tahta",
+            "tampak|nampak","tanda tangan|tandatangan","taoge|toge","tarif|tarip","tata bahasa|tatabahasa",
+            "tauladan|teladan","teknik|tehnik","teknologi|tehnologi","telanjur|terlanjur","telantar|terlantar",
+            "telepon|telpon","teoretis|teoritis","terampil|trampil","terima kasih|terimakasih","terpercaya|tepercaya",
+            "tetapi|tapi","tifus|tipus","tim|team","tradisional|tradisionil","turnamen|tournamen",
+            "ubah|rubah","umat|ummat","umrah|umroh","unta|onta","urine|urin",
+            "utang|hutang","vakum|vacum","valid|falid","varietas|varitas","video|vidio",
+            "vila|villa","volume|volum","wali kota|walikota","wujud|ujud","zaman|jaman",
+            "zamrud|jamrud","zina|zinah","zona|zone"
+        ];
+
+        let questions = [];
+        let currentIdx = 0;
+        let score = 0;
+        let totalQuestions = 0;
+
+        // Fungsi acak array
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function startQuiz(limit) {
+            // Memproses rawData menjadi array objek
+            questions = rawData.map(item => {
+                let parts = item.split("|");
+                return { baku: parts[0], tidakBaku: parts[1] };
+            });
+
+            shuffle(questions); // Acak seluruh bank soal
+
+            // Batasi jumlah soal sesuai pilihan user
+            if(limit < questions.length) {
+                questions = questions.slice(0, limit);
+            }
+            
+            totalQuestions = questions.length;
+            currentIdx = 0;
+            score = 0;
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'block';
+
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            document.getElementById('btn-next').style.display = 'none';
+            document.getElementById('feedback').innerText = '';
+            
+            document.getElementById('q-counter').innerText = `Soal ${currentIdx + 1} dari ${totalQuestions}`;
+            document.getElementById('score-counter').innerText = `Benar: ${score}`;
+
+            const qData = questions[currentIdx];
+            
+            // Format jawaban agar huruf awalnya besar (Capitalize)
+            const cap = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
+            let options = [
+                { text: cap(qData.baku), isCorrect: true },
+                { text: cap(qData.tidakBaku), isCorrect: false }
+            ];
+            shuffle(options);
+
+            const optionsArea = document.getElementById('options-area');
+            optionsArea.innerHTML = '';
+
+            options.forEach(opt => {
+                let btn = document.createElement('button');
+                btn.className = 'btn-option';
+                btn.innerText = opt.text;
+                btn.onclick = () => checkAnswer(btn, opt.isCorrect, cap(qData.baku));
+                optionsArea.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedBtn, isCorrect, correctWord) {
+            const buttons = document.querySelectorAll('.btn-option');
+            buttons.forEach(btn => btn.disabled = true);
+
+            const feedback = document.getElementById('feedback');
+
+            if (isCorrect) {
+                selectedBtn.classList.add('correct');
+                feedback.innerText = "✅ Tepat Sekali!";
+                feedback.style.color = "var(--correct)";
+                score++;
+                document.getElementById('score-counter').innerText = `Benar: ${score}`;
+            } else {
+                selectedBtn.classList.add('wrong');
+                feedback.innerText = `❌ Kurang Tepat! Yang baku adalah: ${correctWord}`;
+                feedback.style.color = "var(--wrong)";
+                
+                // Cari dan warnai tombol yang benar
+                buttons.forEach(btn => {
+                    if (btn.innerText === correctWord) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+
+            document.getElementById('btn-next').style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < totalQuestions) {
+                loadQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            document.getElementById('quiz-screen').style.display = 'none';
+            document.getElementById('result-screen').style.display = 'block';
+
+            let finalScore = Math.round((score / totalQuestions) * 100);
+            document.getElementById('final-score').innerText = finalScore;
+
+            let msg = document.getElementById('final-message');
+            if (finalScore >= 90) msg.innerText = "Luar Biasa! Kemampuan Kosakata Anda setingkat Editor KBBI 🏆";
+            else if (finalScore >= 70) msg.innerText = "Sangat Bagus! Anda sudah sangat siap untuk UTBK PPU/PBM 👍";
+            else if (finalScore >= 50) msg.innerText = "Lumayan. Terus asah insting bahasa Indonesia Anda! 📖";
+            else msg.innerText = "Jangan menyerah! Yuk hafalkan lagi daftar kata baku perlahan-lahan 💪";
+        }
+    </script>
+</body>
+</html>
